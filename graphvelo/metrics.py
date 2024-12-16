@@ -1,10 +1,6 @@
-### 1. FNN metrics to demonstrate whitney embedding theorm
-### 2. Metrics for GraphVelo (may use sliding window)
-
 import numpy as np
 from scipy.sparse import issparse
 from sklearn.linear_model import Lasso
-from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics.pairwise import cosine_similarity
 
 

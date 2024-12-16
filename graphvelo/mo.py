@@ -9,7 +9,6 @@ from sklearn import preprocessing
 import scipy.sparse as sp
 from anndata import AnnData
 
-
 from tqdm import tqdm
 from typing import Optional
 
