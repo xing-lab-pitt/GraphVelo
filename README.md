@@ -12,3 +12,18 @@ GraphVelo is a graph-based machine learning procedure that uses RNA velocities i
 	journal = {bioRxiv}
 }
 ```
+
+## Installation
+
+You need to have Python 3.8 or newer installed on your system. 
+
+To create and activate a new environment
+```bash
+conda create -n graphvelo python=3.8
+conda activate graphvelo
+```
+
+Install via pip:
+```bash
+pip install graphvelo
+```
