@@ -9,7 +9,7 @@ from scipy.optimize import minimize
 from sklearn.decomposition import PCA
 from joblib import Parallel, delayed
 
-from tangent_space import corr_kernel, cos_corr, density_corrected_transition_matrix, _estimate_dt
+from graphvelo.tangent_space import corr_kernel, cos_corr, density_corrected_transition_matrix, _estimate_dt
 
 
 def regression_phi(

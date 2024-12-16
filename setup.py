@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="graphvelo",
-    version="0.1.0",
+    version="0.1.2",
     author="{Yuhao Chen, Yan Zhang, Jiaqi Gan, Ke Ni, Ming Chen, Ivet Bahar, Jianhua Xing",
     author_email="xing1@pitt.edu",
     description="Estimation of manifold-constrained velocity and transform vectors across representations",

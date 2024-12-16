@@ -17,9 +17,9 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Colormap
 import seaborn as sns
 
-from utils import flatten
-from metrics import cross_boundary_correctness
-from kernel_density_smooth import kde2d, kde2d_to_mean_and_sigma
+from graphvelo.utils import flatten
+from graphvelo.metrics import cross_boundary_correctness
+from graphvelo.kernel_density_smooth import kde2d, kde2d_to_mean_and_sigma
 
 
 def cbc_heatmap(

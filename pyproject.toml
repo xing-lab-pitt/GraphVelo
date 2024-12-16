@@ -4,7 +4,7 @@ requires = ["flit_core >=3.4,<4"]
 
 [project]
 name = "GraphVelo"
-version = "0.1.0"
+version = "0.1.2"
 description = "Inferring manifold-constrained velocity and transforming vectors across representations"
 authors = [{ name = "Yuhao Chen", email = "yuhaoc@zju.edu.cn" }]
 readme = "README.md"

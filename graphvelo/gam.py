@@ -7,7 +7,7 @@ import pandas as pd
 import scipy.sparse as sp
 from anndata import AnnData
 
-from utils import flatten
+from graphvelo.utils import flatten
 
 
 def fit_gene_trend(
