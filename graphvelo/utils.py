@@ -427,7 +427,7 @@ def mack_score(
     confidence = confidence.reset_index().set_index("gene")
     confidence.astype(dtype={"confidence": "float64"})
 
-    velo_conf_key = "Mac_score" if add_prefix is None else add_prefix+"Mac_score"
+    velo_conf_key = "mack_score" if add_prefix is None else add_prefix+"mack_score"
     adata.var[velo_conf_key] = np.nan
     adata.var.loc[genes, velo_conf_key] = confidence.loc[genes, "confidence"]
 
