@@ -1,5 +1,26 @@
 # GraphVelo allows inference of multi-modal single cell velocities and molecular mechanisms
 
+[![Supported Python versions](https://img.shields.io/badge/python-3.8-blue)](https://python.org)
+
+**GraphVelo** is a graph-based machine learning procedure that uses RNA velocities inferred from existing methods as input and infers velocity vectors that lie in the tangent space of the low-dimensional manifold formed by the single-cell data.
+
+**[More docs and examples coming soon!!! Read the Docs website still under construction, suggestions welcome!]**
+
+## Key Features
+
+- Refine the velocity vectors estimated by any methods (e.g., splicing-based, metabolic labeling-based, pseudotime-based, lineage tracing-based, etc.) to the data manifold.
+- Infer modality dynamics that go beyond splicing events
+    - Transcription rate of genes without introns or undergoing alternative splicing
+    - Change rate of chromatin openness
+    - More to be explored
+- Serve as a plugin that can be seamlessly integrated into existing RNA velocity analysis pipelines
+- Analyze dynamical systems in the context of multi-modal single-cell data
+
+## Getting Started with GraphVelo
+
+- Let's get started with our [quick start guide demo].
+- Contribute to the project on [GitHub](https://github.com/xing-lab-pitt/GraphVelo).
+
 GraphVelo is a graph-based machine learning procedure that uses RNA velocities inferred from existing methods as input and infers velocity vectors lie in the tangent space of the low-dimensional manifold formed by the single cell data. GraphVelo preserves vector magnitude and direction information during transformations across different data representations. If you use our tool in your own work, please cite it as
 
 ```
