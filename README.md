@@ -14,7 +14,7 @@ Please see our [manuscript](https://www.biorxiv.org/content/10.1101/2024.12.03.6
 	year = {2024},
 	doi = {10.1101/2024.12.03.626638},
 	publisher = {Cold Spring Harbor Laboratory},
-	URL = {https://www.biorxiv.org/content/early/2024/12/07/2024.12.03.626638},
+	URL = {https://www.biorxiv.org/content/10.1101/2024.12.03.626638v1},
 	journal = {bioRxiv}
 }
 ```
