@@ -4,5 +4,6 @@ from .tangent_space import *
 from .gam import *
 from .plot import *
 from .utils import *
+from graphvelo.datasets import *
 
 import graphvelo.plot as pl
