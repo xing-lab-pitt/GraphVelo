@@ -3,9 +3,6 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-.. include:: ../README.md
-   :literal:
-
 Welcome to the GraphVelo documentation.
 ======================================
 **GraphVelo** is a graph-based machine learning procedure that uses RNA velocities inferred from existing methods as input and infers velocity vectors lie in the tangent space of the low-dimensional manifold formed by the single cell data.
@@ -27,7 +24,7 @@ Key Features
 
 Getting Started with GraphVelo
 -----------------------------
-- Let's get start with our `quick_start_guide demo <graphvelo_notebooks/tutorial_for_scvelo.ipynb>`_.
+- Let's get start with our `quick_start_guide demo <graphvelo_notebooks/tutorials/tutorial_for_scvelo.ipynb>`_.
 - Contribute to the project on `github`_.
 
 Installation
