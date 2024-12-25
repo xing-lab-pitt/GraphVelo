@@ -18,7 +18,7 @@
 
 ## Getting Started with GraphVelo
 
-- Let's get started with our [quick start guide demo].
+- Let's get started with our [quick start guide demo](https://graphvelo.readthedocs.io/en/latest/index.html).
 - Contribute to the project on [GitHub](https://github.com/xing-lab-pitt/GraphVelo).
 
 GraphVelo is a graph-based machine learning procedure that uses RNA velocities inferred from existing methods as input and infers velocity vectors lie in the tangent space of the low-dimensional manifold formed by the single cell data. GraphVelo preserves vector magnitude and direction information during transformations across different data representations. If you use our tool in your own work, please cite it as
