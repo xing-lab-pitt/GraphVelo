@@ -19,8 +19,6 @@ Please see our [manuscript](https://www.biorxiv.org/content/10.1101/2024.12.03.6
 }
 ```
 
-**[More docs and examples coming soon!!! Read the Docs website still under construction, suggestions welcome!]**
-
 ## Key Features
 
 - Refine the velocity vectors estimated by any methods (e.g., splicing-based, metabolic labeling-based, pseudotime-based, lineage tracing-based, etc.) to the data manifold.
