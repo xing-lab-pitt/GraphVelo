@@ -4,7 +4,20 @@
 
 **GraphVelo** is a graph-based machine learning procedure that uses RNA velocities inferred from existing methods as input and infers velocity vectors that lie in the tangent space of the low-dimensional manifold formed by the single-cell data.
 
-<img src="https://github.com/xing-lab-pitt/GraphVelo/blob/main/docs/source/_static/img/framework_fig.png" alt="GraphVelo" width="600" />
+<img src="https://github.com/xing-lab-pitt/GraphVelo/blob/main/docs/source/_static/img/framework_fig.png" alt="GraphVelo" width="800" />
+
+Please see our [manuscript](https://www.biorxiv.org/content/10.1101/2024.12.03.626638v1) for detailed explanation. If you use our tool in your own work, please cite it as
+
+```
+@article {Chen2024.12.03.626638,
+	author = {Chen, Yuhao and Zhang, Yan and Gan, Jiaqi and Ni, Ke and Chen, Ming and Bahar, Ivet and Xing, Jianhua},
+	year = {2024},
+	doi = {10.1101/2024.12.03.626638},
+	publisher = {Cold Spring Harbor Laboratory},
+	URL = {https://www.biorxiv.org/content/early/2024/12/07/2024.12.03.626638},
+	journal = {bioRxiv}
+}
+```
 
 **[More docs and examples coming soon!!! Read the Docs website still under construction, suggestions welcome!]**
 
@@ -20,21 +33,7 @@
 
 ## Getting Started with GraphVelo
 
-- Let's get started with our [Tutorials](https://graphvelo.readthedocs.io/en/latest/index.html).
-- Contribute to the project on [GitHub](https://github.com/xing-lab-pitt/GraphVelo).
-
-Please see our [manuscript](https://www.biorxiv.org/content/10.1101/2024.12.03.626638v1) for detailed explanation. If you use our tool in your own work, please cite it as
-
-```
-@article {Chen2024.12.03.626638,
-	author = {Chen, Yuhao and Zhang, Yan and Gan, Jiaqi and Ni, Ke and Chen, Ming and Bahar, Ivet and Xing, Jianhua},
-	year = {2024},
-	doi = {10.1101/2024.12.03.626638},
-	publisher = {Cold Spring Harbor Laboratory},
-	URL = {https://www.biorxiv.org/content/early/2024/12/07/2024.12.03.626638},
-	journal = {bioRxiv}
-}
-```
+Let's get started with our [Tutorials](https://graphvelo.readthedocs.io/en/latest/index.html).
 
 ## Installation
 
