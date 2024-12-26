@@ -2,7 +2,7 @@
 
 [![Supported Python versions](https://img.shields.io/badge/python-3.8-blue)](https://python.org)
 
-<img src="https://github.com/xing-lab-pitt/GraphVelo/blob/main/docs/source/_static/img/framework_fig.png" alt="GraphVelo" width="800" />
+<img src="https://github.com/xing-lab-pitt/GraphVelo/blob/main/docs/_static/img/framework_fig.png" alt="GraphVelo" width="800" />
 
 **GraphVelo** is a graph-based machine learning procedure that uses RNA velocities inferred from existing methods as input and infers velocity vectors that lie in the tangent space of the low-dimensional manifold formed by the single-cell data.
 
