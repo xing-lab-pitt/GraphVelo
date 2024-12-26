@@ -7,10 +7,6 @@ Welcome to the GraphVelo documentation.
 ======================================
 **GraphVelo** is a graph-based machine learning procedure that uses RNA velocities inferred from existing methods as input and infers velocity vectors lie in the tangent space of the low-dimensional manifold formed by the single cell data.
 
-
-**[More docs and examples Coming soon!!! readthedocs website still underconstruction, suggestions welcome!]**
-
-
 Key Features
 ------------
 
