@@ -1,115 +1,103 @@
-# Configuration file for the Sphinx documentation builder.
-#
-# This file only contains a selection of the most common options. For a full
-# list see the documentation:
-# http://www.sphinx-doc.org/en/master/config
-
-# -- Path setup --------------------------------------------------------------
+from typing import Any
+import subprocess
 import os
+import importlib
+import inspect
+import re
 import sys
-from pathlib import Path
 from datetime import datetime
+from importlib.metadata import metadata
+from pathlib import Path
 
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#
-from urllib.request import urlretrieve
+HERE = Path(__file__).parent
+sys.path[:0] = [str(HERE.parent), str(HERE / "extensions")]
 
-module_path = os.path.join(os.path.dirname(__file__), "../..")
-sys.path.insert(0, os.path.abspath(module_path))
-sys.path.insert(0, os.path.abspath("../"))
-sys.path.insert(0, os.path.abspath("../../"))
-from source.docs_download_utils import _download_docs_dirs
-
-# import graphvelo
-
-# HERE = Path(__file__).parent
-# sys.path[:0] = [str(HERE.parent)]
-
-# Add any paths that contain templates here, relative to this directory.
-templates_path = ["_templates"]
-source_suffix = {".rst": "restructuredtext"}
-# bibtex_bibfiles = ["./notebooks/lap.bib", "./notebooks/livetracker_ref.bib"]
-# bibtex_reference_style = "author_year"
-
-master_doc = "index"
-pygments_style = "sphinx"
-
-
-github_org = "xing-lab-pitt"
-github_code_repo = "graphvelo"
-github_ref = "master"
-github_nb_repo = "graphvelo_notebooks"
-
-# TODO: download and maintain notebooks from github
-# _download_docs_dirs(repo_url=f"https://github.com/{github_org}/{github_nb_repo}")
-
-# Add notebooks prolog to Google Colab and nbviewer
-# TODO
-nbsphinx_prolog = r"""
-"""
-nbsphinx_execute = "never"  # never execute notebooks
 
 # -- Project information -----------------------------------------------------
 
-project = "GraphVelo"
+project_name = "GraphVelo"
+package_name = "graphvelo"
 author = "Chen, Yuhao and Zhang, Yan and Gan, Jiaqi and Ni, Ke and Chen, Ming and Bahar, Ivet and Xing, Jianhua"
 copyright = f"{datetime.now():%Y}, {author}."
+version = "0.1.0"
+repository_url = "https://github.com/xing-lab-pitt/GraphVelo"
 
 # The full version, including alpha/beta/rc tags
 release = "0.1.0"
 
+bibtex_bibfiles = ["references.bib"]
+templates_path = ["_templates"]
+nitpicky = True  # Warn about broken links
+needs_sphinx = "4.0"
+
+html_context = {
+    "display_github": True,  # Integrate GitHub
+    "github_user": "Xing-lab-pitt",  # Username
+    "github_repo": project_name,  # Repo name
+    "github_version": "main",  # Version
+    "conf_py_path": "/docs/",  # Path in the checkout to the docs root
+}
+
 # -- General configuration ---------------------------------------------------
 
-# Add any Sphinx extension module names here, as strings. They can be
-# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
-# ones.
-
-# specify sphinx version
-needs_sphinx = "4"
-
+# Add any Sphinx extension module names here, as strings.
+# They can be extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
-    "nbsphinx",
+    "myst_nb",
     "sphinx.ext.autodoc",
-    "sphinx.ext.napoleon",
-    "sphinx.ext.autosummary",
-    "sphinx.ext.doctest",
-    "sphinx.ext.coverage",
-    "sphinx.ext.mathjax",
-    "sphinx.ext.napoleon",
-    # Link to other project's documentation (see mapping below)
+    "sphinx.ext.linkcode",
     "sphinx.ext.intersphinx",
-    # Add a link to the Python source code for classes, functions etc.
-    "sphinx.ext.viewcode",
-    "sphinx.ext.githubpages",
-    "sphinx.ext.autosectionlabel",
-    # Automatically document param types (less noise in class signature)
-    "sphinx_autodoc_typehints",
-    # "sphinxcontrib.bibtex",
-    "sphinx_gallery.load_style",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.napoleon",
+    "sphinxcontrib.bibtex",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.extlinks",
+    *[p.stem for p in (HERE / "extensions").glob("*.py")],
+    "sphinx_copybutton",
 ]
 
-# Mappings for sphinx.ext.intersphinx. Projects have to have Sphinx-generated doc! (.inv file)
+autosummary_generate = True
+autodoc_member_order = "bysource"
+default_role = "literal"
+autodoc_typehints = "description"
+bibtex_reference_style = "author_year"
+napoleon_google_docstring = True
+napoleon_numpy_docstring = True
+napoleon_include_init_with_doc = False
+napoleon_use_rtype = True  # having a separate entry generally helps readability
+napoleon_use_param = True
+myst_enable_extensions = [
+    "amsmath",
+    "colon_fence",
+    "deflist",
+    "dollarmath",
+    "html_image",
+    "html_admonition",
+]
+myst_url_schemes = ("http", "https", "mailto")
+nb_output_stderr = "remove"
+nb_execution_mode = "off"
+nb_merge_streams = True
+
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".ipynb": "myst-nb",
+    ".myst": "myst-nb",
+}
+
 intersphinx_mapping = {
     "anndata": ("https://anndata.readthedocs.io/en/stable/", None),
-    "cycler": ("https://matplotlib.org/cycler/", None),
-    "dask": ("https://docs.dask.org/en/latest/", None),
-    "h5py": ("http://docs.h5py.org/en/stable/", None),
     "ipython": ("https://ipython.readthedocs.io/en/stable/", None),
-    "louvain": ("https://louvain-igraph.readthedocs.io/en/latest/", None),
-    "matplotlib": ("https://matplotlib.org/stable/", None),
-    "networkx": (
-        "https://networkx.org/documentation/stable/",
-        None,
-    ),
-    "numpy": ("https://docs.scipy.org/doc/numpy/", None),
-    "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
-    "pytest": ("https://docs.pytest.org/en/latest/", None),
-    "python": ("https://docs.python.org/3", None),
-    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
+    "matplotlib": ("https://matplotlib.org/", None),
     "seaborn": ("https://seaborn.pydata.org/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "python": ("https://docs.python.org/3", None),
+    "pandas": ("https://pandas.pydata.org/docs/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
+    "pygam": ("https://pygam.readthedocs.io/en/latest/", None),
     "sklearn": ("https://scikit-learn.org/stable/", None),
+    "scanpy": ("https://scanpy.readthedocs.io/en/stable/", None),
+    "scvelo": ("https://scvelo.readthedocs.io/en/latest/", None),
 }
 
 # List of patterns, relative to source directory, that match files and
@@ -117,64 +105,98 @@ intersphinx_mapping = {
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
 
-# Generate the API documentation when building
-autosummary_generate = True
-autodoc_member_order = "bysource"
-autoclass_content = "both"  # Add __init__ doc (ie. params) to class summaries
-# Remove 'view source code' from top of page (for html, not python)
-html_show_sourcelink = True
-# If no class summary, inherit base class summary
-autodoc_inherit_docstrings = True
+# extlinks config
+extlinks = {
+    "issue": (f"{repository_url}/issues/%s", "#%s"),
+    "pr": (f"{repository_url}/pull/%s", "#%s"),
+    "ghuser": ("https://github.com/%s", "@%s"),
+}
 
-autodoc_default_flags = [
-    # Make sure that any autodoc declarations show the right members
-    "members",
-    "inherited-members",
-    "private-members",
-    "show-inheritance",
-]
+
+# -- Linkcode settings -------------------------------------------------
+
+
+def git(*args):
+    """Run a git command and return the output."""
+    return subprocess.check_output(["git", *args]).strip().decode()
+
+
+# https://github.com/DisnakeDev/disnake/blob/7853da70b13fcd2978c39c0b7efa59b34d298186/docs/conf.py#L192
+# Current git reference. Uses branch/tag name if found, otherwise uses commit hash
+git_ref = None
+try:
+    git_ref = git("name-rev", "--name-only", "--no-undefined", "HEAD")
+    git_ref = re.sub(r"^(remotes/[^/]+|tags)/", "", git_ref)
+except Exception:
+    pass
+
+# (if no name found or relative ref, use commit hash instead)
+if not git_ref or re.search(r"[\^~]", git_ref):
+    try:
+        git_ref = git("rev-parse", "HEAD")
+    except Exception:
+        git_ref = "main"
+
+# https://github.com/DisnakeDev/disnake/blob/7853da70b13fcd2978c39c0b7efa59b34d298186/docs/conf.py#L192
+github_repo = "https://github.com/" + html_context["github_user"] + "/" + project_name
+_project_module_path = os.path.dirname(importlib.util.find_spec(package_name).origin)  # type: ignore
+
+
+def linkcode_resolve(domain, info):
+    """Resolve links for the linkcode extension."""
+    if domain != "py":
+        return None
+
+    try:
+        obj: Any = sys.modules[info["module"]]
+        for part in info["fullname"].split("."):
+            obj = getattr(obj, part)
+        obj = inspect.unwrap(obj)
+
+        if isinstance(obj, property):
+            obj = inspect.unwrap(obj.fget)  # type: ignore
+
+        path = os.path.relpath(inspect.getsourcefile(obj), start=_project_module_path)  # type: ignore
+        src, lineno = inspect.getsourcelines(obj)
+    except Exception:
+        return None
+
+    path = f"{path}#L{lineno}-L{lineno + len(src) - 1}"
+    return f"{github_repo}/blob/{git_ref}/{package_name}/{path}"
+
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "sphinx_rtd_theme"
-# html_theme = "furo"
-html_theme_options = dict(
-    navigation_depth=4,
-    logo_only=True,
-)
-html_context = dict(
-    display_github=True,  # Integrate GitHub
-    github_user=github_org,  # organization
-    github_repo=github_code_repo,  # Repo name
-    github_version="master",  # Version
-    conf_py_path="/docs/source/",
-)
-html_show_sphinx = False
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-# html_logo = "_static/logo.png"
+html_theme = "sphinx_book_theme"
+html_static_path = ["_static"]
+html_title = "GraphVelo"
 
+html_theme_options = {
+    "repository_url": github_repo,
+    "use_repository_button": True,
+}
 
-autodoc_member_order = "groupwise"
-autodoc_typehints = "signature"
-autodoc_docstring_signature = True
-napoleon_google_docstring = False
-napoleon_numpy_docstring = True
-napoleon_include_init_with_doc = False
-napoleon_use_rtype = True
-napoleon_use_param = True
+pygments_style = "default"
 
-bibtex_bibfiles = ["references.bib"]
-bibtex_reference_style = "author_year"
-bibtex_default_style = "alpha"
+nitpick_ignore = [
+    # If building the documentation fails because of a missing link that is outside your control,
+    # you can add an exception to this list.
+]
 
 
 def setup(app):
-    app.add_css_file("css/custom.css")
-
-
-sphinx_enable_epub_build = False
-sphinx_enable_pdf_build = False
+    """App setup hook."""
+    app.add_config_value(
+        "recommonmark_config",
+        {
+            "auto_toc_tree_section": "Contents",
+            "enable_auto_toc_tree": True,
+            "enable_math": True,
+            "enable_inline_math": False,
+            "enable_eval_rst": True,
+        },
+        True,
+    )
