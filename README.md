@@ -6,19 +6,6 @@
 
 **GraphVelo** is a graph-based machine learning procedure that uses RNA velocities inferred from existing methods as input and infers velocity vectors that lie in the tangent space of the low-dimensional manifold formed by the single-cell data.
 
-Please see our [manuscript](https://www.biorxiv.org/content/10.1101/2024.12.03.626638v1) for detailed explanation. If you use our tool in your own work, please cite it as
-
-```
-@article {Chen2024.12.03.626638,
-	author = {Chen, Yuhao and Zhang, Yan and Gan, Jiaqi and Ni, Ke and Chen, Ming and Bahar, Ivet and Xing, Jianhua},
-	year = {2024},
-	doi = {10.1101/2024.12.03.626638},
-	publisher = {Cold Spring Harbor Laboratory},
-	URL = {https://www.biorxiv.org/content/10.1101/2024.12.03.626638v1},
-	journal = {bioRxiv}
-}
-```
-
 ## Key Features
 
 - Refine the velocity vectors estimated by any methods (e.g., splicing-based, metabolic labeling-based, pseudotime-based, lineage tracing-based, etc.) to the data manifold.
@@ -46,4 +33,19 @@ conda activate graphvelo
 Install via pip:
 ```bash
 pip install graphvelo
+```
+
+## Citing GraphVelo
+
+Please see our [manuscript](https://www.biorxiv.org/content/10.1101/2024.12.03.626638v1) for detailed explanation. If you use our tool in your own work, please cite it as
+
+```
+@article {Chen2024.12.03.626638,
+	author = {Chen, Yuhao and Zhang, Yan and Gan, Jiaqi and Ni, Ke and Chen, Ming and Bahar, Ivet and Xing, Jianhua},
+	year = {2024},
+	doi = {10.1101/2024.12.03.626638},
+	publisher = {Cold Spring Harbor Laboratory},
+	URL = {https://www.biorxiv.org/content/10.1101/2024.12.03.626638v1},
+	journal = {bioRxiv}
+}
 ```
