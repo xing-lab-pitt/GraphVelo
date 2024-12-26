@@ -8,7 +8,7 @@
 
 ## Key Features
 
-- Refine the velocity vectors estimated by any methods (e.g., splicing-based, metabolic labeling-based, pseudotime-based, lineage tracing-based, etc.) to the data manifold.
+- Refine the velocity vectors estimated by any methods (e.g., splicing-based, metabolic labeling-based, pseudotime-based, lineage tracing-based, etc.) to the data manifold
 - Infer modality dynamics that go beyond splicing events
     - Transcription rate of genes without introns or undergoing alternative splicing
     - Change rate of chromatin openness
