@@ -10,7 +10,7 @@ Welcome to the GraphVelo documentation.
 Key Features
 ------------
 
-- Refine the velocity vectors estimated by any methods (e.g. splicing-based, metabolic labeling-based, pseudotime-based, lineage tracing-based etc.) to the data manifold. 
+- Refine the velocity vectors estimated by any methods (e.g. splicing-based, metabolic labeling-based, pseudotime-based, lineage tracing-based etc.) to the data manifold
 - Infer modality dynamics goes beyond splicing events 
     - Transcription rate of gene without intron or undergoing alternative splicing
     - Change rate of chromatin openess
