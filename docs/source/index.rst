@@ -27,23 +27,13 @@ Getting Started with GraphVelo
 - Let's get start with our `quick_start_guide demo <graphvelo_notebooks/tutorials/tutorial_for_scvelo.ipynb>`_.
 - Contribute to the project on `github`_.
 
-Installation
-------------
-You need to have Python 3.8 or newer installed on your system. 
-
-To create and activate a new environment::
-    conda create -n graphvelo python=3.8
-    conda activate graphvelo
-
-Install graphvelo via pip::
-    pip install graphvelo
-
 
 .. toctree::
     :caption: General
-    :maxdepth: 2
+    :maxdepth: 1
     :hidden:
 
+    installation
     API
     about
     tutorials
