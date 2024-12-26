@@ -28,12 +28,13 @@ Installation
 You need to have Python 3.8 or newer installed on your system. 
 
 To create and activate a new environment::
+
     conda create -n graphvelo python=3.8
     conda activate graphvelo
 
 Install graphvelo via pip::
-    pip install graphvelo
 
+    pip install graphvelo
 
 .. toctree::
     :caption: General

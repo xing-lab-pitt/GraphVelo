@@ -1,2 +1,3 @@
-Coming soon!
+About GraphVelo
 ============
+Comming soon!
