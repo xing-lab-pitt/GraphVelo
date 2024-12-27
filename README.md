@@ -20,7 +20,7 @@
 
 Check the pipeline of RNA velocity estimation and you will find the niche of graphvelo:
 
-<img src="https://github.com/xing-lab-pitt/GraphVelo/blob/main/docs/source/_static/img/graphvelo_pipeline.png" alt="GraphVelo" width="600" />
+<img src="https://github.com/xing-lab-pitt/GraphVelo/blob/main/docs/source/_static/img/graphvelo_pipeline.png" alt="GraphVelo" width="800" />
 
 Now let's get started with our [Tutorials](https://graphvelo.readthedocs.io/en/latest/index.html).
 
