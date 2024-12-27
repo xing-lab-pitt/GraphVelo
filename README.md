@@ -18,7 +18,7 @@
 
 ## Getting Started with GraphVelo
 
-Check the pipeline of RNA velocity estimation and you will find the niche of graphvelo:
+Check the pipeline of RNA velocity estimation and you will find the niche of `graphvelo`:
 
 <img src="https://github.com/xing-lab-pitt/GraphVelo/blob/main/docs/source/_static/img/graphvelo_pipeline.png" alt="GraphVelo" width="800" />
 
