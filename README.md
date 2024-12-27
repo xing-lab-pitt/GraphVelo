@@ -18,7 +18,11 @@
 
 ## Getting Started with GraphVelo
 
-Let's get started with our [Tutorials](https://graphvelo.readthedocs.io/en/latest/index.html).
+Check the pipeline of RNA velocity estimation and you will find the niche of graphvelo:
+
+<img src="https://github.com/xing-lab-pitt/GraphVelo/blob/main/docs/source/_static/img/graphvelo_pipeline.png" alt="GraphVelo" width="600" />
+
+Now let's get started with our [Tutorials](https://graphvelo.readthedocs.io/en/latest/index.html).
 
 ## Installation
 
@@ -37,15 +41,18 @@ pip install graphvelo
 
 ## Citing GraphVelo
 
-Please see our [manuscript](https://www.biorxiv.org/content/10.1101/2024.12.03.626638v1) for detailed explanation. If you use our tool in your own work, please cite it as
+Please see our [manuscript](https://www.biorxiv.org/content/10.1101/2024.12.03.626638v1) for detailed explanation. 
+If you find GraphVelo useful for your research, please consider citing our work as follows:
 
 ```
 @article {Chen2024.12.03.626638,
 	author = {Chen, Yuhao and Zhang, Yan and Gan, Jiaqi and Ni, Ke and Chen, Ming and Bahar, Ivet and Xing, Jianhua},
+	title = {GraphVelo allows inference of multi-modal single cell velocities and molecular mechanisms},
 	year = {2024},
 	doi = {10.1101/2024.12.03.626638},
 	publisher = {Cold Spring Harbor Laboratory},
-	URL = {https://www.biorxiv.org/content/10.1101/2024.12.03.626638v1},
+	URL = {https://www.biorxiv.org/content/early/2024/12/07/2024.12.03.626638},
 	journal = {bioRxiv}
 }
+
 ```
