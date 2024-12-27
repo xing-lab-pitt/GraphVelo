@@ -43,6 +43,7 @@ Install graphvelo via pip:
     :maxdepth: 1
     :hidden:
 
+    installation
     API
     about
     tutorials
