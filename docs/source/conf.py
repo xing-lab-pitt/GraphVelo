@@ -53,21 +53,39 @@ nbsphinx_execute = "never"  # never execute notebooks
 
 # -- Project information -----------------------------------------------------
 
-project = "GraphVelo"
+project_name = "GraphVelo"
+package_name = "graphvelo"
 author = "Chen, Yuhao and Zhang, Yan and Gan, Jiaqi and Ni, Ke and Chen, Ming and Bahar, Ivet and Xing, Jianhua"
 copyright = f"{datetime.now():%Y}, {author}."
+version = "0.2.0"
+repository_url = "https://github.com/xing-lab-pitt/GraphVelo"
 
 # The full version, including alpha/beta/rc tags
-release = "0.1.0"
+release = "0.2.0"
+
+bibtex_bibfiles = ["references.bib"]
+bibtex_reference_style = "author_year"
+bibtex_default_style = "alpha"
+
+templates_path = ["_templates"]
+nitpicky = True  # Warn about broken links
+needs_sphinx = "4.0"
+
+html_context = {
+    "display_github": True,  # Integrate GitHub
+    "github_user": "xing-lab-pitt",  # Username
+    "github_repo": project_name,  # Repo name
+    "github_version": "main",  # Version
+    "conf_py_path": "/docs/",  # Path in the checkout to the docs root
+}
+github_repo = "https://github.com/" + html_context["github_user"] + "/" + project_name
+
 
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-
-# specify sphinx version
-needs_sphinx = "4"
 
 extensions = [
     "nbsphinx",
@@ -117,6 +135,13 @@ intersphinx_mapping = {
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
 
+# extlinks config
+extlinks = {
+    "issue": (f"{repository_url}/issues/%s", "#%s"),
+    "pr": (f"{repository_url}/pull/%s", "#%s"),
+    "ghuser": ("https://github.com/%s", "@%s"),
+}
+
 # Generate the API documentation when building
 autosummary_generate = True
 autodoc_member_order = "bysource"
@@ -133,16 +158,22 @@ autodoc_default_flags = [
     "private-members",
     "show-inheritance",
 ]
+
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
 html_theme = "sphinx_rtd_theme"
+html_static_path = ["_static"]
+html_title = "GraphVelo"
 # html_theme = "furo"
 html_theme_options = dict(
+    repository_url=github_repo,
     navigation_depth=4,
-    logo_only=True,
+    use_repository_button=True,
+    # logo_only=True,
 )
 html_context = dict(
     display_github=True,  # Integrate GitHub
@@ -166,10 +197,6 @@ napoleon_numpy_docstring = True
 napoleon_include_init_with_doc = False
 napoleon_use_rtype = True
 napoleon_use_param = True
-
-bibtex_bibfiles = ["references.bib"]
-bibtex_reference_style = "author_year"
-bibtex_default_style = "alpha"
 
 
 def setup(app):
