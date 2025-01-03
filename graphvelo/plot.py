@@ -1,4 +1,4 @@
-from typing import Tuple, Optional, Union
+from typing import Tuple, Optional, Union, List
 try:
     from typing import Literal
 except ImportError:
@@ -15,11 +15,115 @@ from pygam import LinearGAM, s
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.colors import Colormap
+import matplotlib.patheffects as PathEffects
 import seaborn as sns
 
 from graphvelo.utils import flatten
 from graphvelo.metrics import cross_boundary_correctness
 from graphvelo.kernel_density_smooth import kde2d, kde2d_to_mean_and_sigma
+
+
+def gene_score_histogram(
+    adata,
+    score_key: str,
+    genes: Optional[List[str]] = None,
+    bins: int = 100,
+    quantile: Optional[float] = 0.95,
+    extra_offset_fraction: float = 0.1,
+    anno_min_diff_fraction: float = 0.05,
+) -> plt.Figure:
+    """
+    Draw a histogram of gene scores with percentile line and annotations for specific genes.
+    Adapted from Palantir (https://github.com/dpeerlab/Palantir/blob/master/src/palantir/plot.py#L1803)
+
+    Parameters
+    ----------
+    adata : AnnData
+        Annotated data matrix.
+    score_key : str
+        The key in `adata.var` data frame for the gene score.
+    genes : Optional[List[str]], default=None
+        List of genes to be annotated. If None, no genes are annotated.
+    bins : int, default=100
+        The number of bins for the histogram.
+    quantile : Optional[float], default=0.95
+        Quantile line to draw on the histogram. If None, no line is drawn.
+    extra_offset_fraction : float, default=0.1
+        Fraction of max height to use as extra offset for annotation.
+    anno_min_diff_fraction : float, default=0.05
+        Fraction of the range of the scores to be used as minimum difference for annotation.
+
+    Returns
+    -------
+    fig : matplotlib Figure
+        Figure object with the histogram.
+
+    Raises
+    ------
+    ValueError
+        If input parameters are not as expected.
+    """
+    if score_key not in adata.var.columns:
+        raise ValueError(f"Score key {score_key} not found in ad.var columns.")
+    scores = adata.var[score_key]
+
+    if genes is not None:
+        if not all(gene in scores for gene in genes):
+            raise ValueError("All genes must be present in the scores.")
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    n_markers = len(genes) if genes is not None else 0
+
+    heights, bins, _ = ax.hist(scores, bins=bins, zorder=-n_markers - 2)
+
+    if quantile is not None:
+        if quantile < 0 or quantile > 1:
+            raise ValueError("Quantile should be a float between 0 and 1.")
+        ax.vlines(
+            np.quantile(scores, quantile),
+            0,
+            np.max(heights),
+            alpha=0.5,
+            color="red",
+            label=f"{quantile:.0%} percentile",
+        )
+
+    ax.legend()
+    ax.set_xlabel(f"{score_key} score")
+    ax.set_ylabel("# of genes")
+
+    ax.spines[["right", "top"]].set_visible(False)
+    plt.locator_params(axis="x", nbins=3)
+
+    if genes is None:
+        return fig
+
+    previous_value = -np.inf
+    extra_offset = extra_offset_fraction * np.max(heights)
+    min_diff = anno_min_diff_fraction * (np.max(bins) - np.min(bins))
+    marks = scores[genes].sort_values()
+    ranks = scores.rank(ascending=False)
+    for k, (highlight_gene, value) in enumerate(marks.items()):
+        hl_rank = int(ranks[highlight_gene])
+        i = np.searchsorted(bins, value)
+        text_offset = -np.inf if value - previous_value > min_diff else previous_value
+        previous_value = value
+        height = heights[i - 1]
+        text_offset = max(text_offset + extra_offset, height + 1.8 * extra_offset)
+        txt = ax.annotate(
+            f"{highlight_gene} #{hl_rank}",
+            (value, height),
+            (value, text_offset),
+            arrowprops=dict(facecolor="black", width=1, alpha=0.5),
+            rotation=90,
+            horizontalalignment="center",
+            zorder=-k,
+        )
+        txt.set_path_effects(
+            [PathEffects.withStroke(linewidth=2, foreground="w", alpha=0.8)]
+        )
+
+    return fig
 
 
 def cbc_heatmap(
