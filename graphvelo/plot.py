@@ -8,8 +8,8 @@ import logging
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_numeric_dtype, is_categorical_dtype
 import scipy.sparse as sp
+from pandas.api.types import is_numeric_dtype, is_categorical_dtype
 from pygam import LinearGAM, s
 
 import matplotlib
@@ -18,9 +18,874 @@ from matplotlib.colors import Colormap
 import matplotlib.patheffects as PathEffects
 import seaborn as sns
 
-from graphvelo.utils import flatten
-from graphvelo.metrics import cross_boundary_correctness
-from graphvelo.kernel_density_smooth import kde2d, kde2d_to_mean_and_sigma
+from utils import flatten
+from gam import fit_velo_peak
+from metrics import cross_boundary_correctness
+from kernel_density_smooth import kde2d, kde2d_to_mean_and_sigma
+
+
+# Cell cycle genes are adapted from `dynamo`.
+G1S_genes_human = [
+        "ARGLU1",
+        "BRD7",
+        "CDC6",
+        "CLSPN",
+        "ESD",
+        "GINS2",
+        "GMNN",
+        "LUC7L3",
+        "MCM5",
+        "MCM6",
+        "NASP",
+        "PCNA",
+        "PNN",
+        "SLBP",
+        "SRSF7",
+        "SSR3",
+        "ZRANB2"]
+S_genes_human = [
+        "ASF1B",
+        "CALM2",
+        "CDC45",
+        "CDCA5",
+        "CENPM",
+        "DHFR",
+        "EZH2",
+        "FEN1",
+        "HIST1H2AC",
+        "HIST1H4C",
+        "NEAT1",
+        "PKMYT1",
+        "PRIM1",
+        "RFC2",
+        "RPA2",
+        "RRM2",
+        "RSRC2",
+        "SRSF5",
+        "SVIP",
+        "TOP2A",
+        "TYMS",
+        "UBE2T",
+        "ZWINT"]
+G2M_genes_human = [
+        "AURKB",
+        "BUB3",
+        "CCNA2",
+        "CCNF",
+        "CDCA2",
+        "CDCA3",
+        "CDCA8",
+        "CDK1",
+        "CKAP2",
+        "DCAF7",
+        "HMGB2",
+        "HN1",
+        "KIF5B",
+        "KIF20B",
+        "KIF22",
+        "KIF23",
+        "KIFC1",
+        "KPNA2",
+        "LBR",
+        "MAD2L1",
+        "MALAT1",
+        "MND1",
+        "NDC80",
+        "NUCKS1",
+        "NUSAP1",
+        "PIF1",
+        "PSMD11",
+        "PSRC1",
+        "SMC4",
+        "TIMP1",
+        "TMEM99",
+        "TOP2A",
+        "TUBB",
+        "TUBB4B",
+        "VPS25"]
+M_genes_human = [
+        "ANP32B",
+        "ANP32E",
+        "ARL6IP1",
+        "AURKA",
+        "BIRC5",
+        "BUB1",
+        "CCNA2",
+        "CCNB2",
+        "CDC20",
+        "CDC27",
+        "CDC42EP1",
+        "CDCA3",
+        "CENPA",
+        "CENPE",
+        "CENPF",
+        "CKAP2",
+        "CKAP5",
+        "CKS1B",
+        "CKS2",
+        "DEPDC1",
+        "DLGAP5",
+        "DNAJA1",
+        "DNAJB1",
+        "GRK6",
+        "GTSE1",
+        "HMG20B",
+        "HMGB3",
+        "HMMR",
+        "HN1",
+        "HSPA8",
+        "KIF2C",
+        "KIF5B",
+        "KIF20B",
+        "LBR",
+        "MKI67",
+        "MZT1",
+        "NUF2",
+        "NUSAP1",
+        "PBK",
+        "PLK1",
+        "PRR11",
+        "PSMG3",
+        "PWP1",
+        "RAD51C",
+        "RBM8A",
+        "RNF126",
+        "RNPS1",
+        "RRP1",
+        "SFPQ",
+        "SGOL2",
+        "SMARCB1",
+        "SRSF3",
+        "TACC3",
+        "THRAP3",
+        "TPX2",
+        "TUBB4B",
+        "UBE2D3",
+        "USP16",
+        "WIBG",
+        "YWHAH",
+        "ZNF207"]
+MG1_genes_human = [
+        "AMD1",
+        "ANP32E",
+        "CBX3",
+        "CDC42",
+        "CNIH4",
+        "CWC15",
+        "DKC1",
+        "DNAJB6",
+        "DYNLL1",
+        "EIF4E",
+        "FXR1",
+        "GRPEL1",
+        "GSPT1",
+        "HMG20B",
+        "HSPA8",
+        "ILF2",
+        "KIF5B",
+        "KPNB1",
+        "LARP1",
+        "LYAR",
+        "MORF4L2",
+        "MRPL19",
+        "MRPS2",
+        "MRPS18B",
+        "NUCKS1",
+        "PRC1",
+        "PTMS",
+        "PTTG1",
+        "RAN",
+        "RHEB",
+        "RPL13A",
+        "SRSF3",
+        "SYNCRIP",
+        "TAF9",
+        "TMEM138",
+        "TOP1",
+        "TROAP",
+        "UBE2D3",
+        "ZNF593"]
+
+def polar_plot(adata, phase_key='phase', layer='velocity_gv', show_names=False, show_markers=True, show=False, **kwargs):
+    """
+    Polar plot adapted from VeloCycle(https://github.com/lamanno-epfl/velocycle/blob/main/velocycle/plots.py) with some modifications.
+    """
+    gene_names = np.array([a for a in adata.var_names])
+    markers = G1S_genes_human + S_genes_human + G2M_genes_human + M_genes_human + MG1_genes_human
+    phases_list = [G1S_genes_human, S_genes_human, G2M_genes_human, M_genes_human, MG1_genes_human, [i for i in gene_names if i.upper() not in markers]]
+    gs = []
+    gradient = []
+    for i in range(len(phases_list)):
+        for j in range(len(phases_list[i])):
+            if phases_list[i][j] not in gene_names:
+                continue
+            else:
+                gs.append(phases_list[i][j])
+                gradient.append(i)
+
+    color_gradient_map = pd.DataFrame({'Gene': gs,  'Color': gradient}).set_index('Gene').to_dict()['Color']
+    colored_gradient = pd.Series(gs).map(color_gradient_map)
+    gs = np.array(gs)
+    
+    for i,j in zip(gs, colored_gradient):
+        if np.isnan(j):
+            print(i)
+         
+    # rescale phase for polar plot
+    phase = adata.obs[phase_key].values
+    phase -= phase.min()
+    phase = phase / phase.max() * 2 * np.pi
+
+    gam_kwargs = {
+        'n_splines': 7,
+        'spline_order': 3,
+    }
+    gam_kwargs.update(kwargs)
+
+    df_peak = fit_velo_peak(
+        adata, 
+        genes=gs, 
+        tkey=phase_key, 
+        layer=layer, 
+        log_norm=True, 
+        max_iter=1000, 
+        **gam_kwargs
+    )
+    
+    # Extract the peak phase and magnitude values.
+    angle = df_peak['phase'].values
+    magnitude = df_peak['magnitude'].values
+    
+    fig = plt.figure(figsize = (6, 6))
+    ax = fig.add_subplot(projection='polar')
+    
+    # First: only plot dots with a color assignment
+    angle_subset = angle[~np.isnan(colored_gradient.values)]
+    r_subset = magnitude[~np.isnan(colored_gradient.values)]
+    color_subset = colored_gradient.values[~np.isnan(colored_gradient.values)]
+    
+    # Remove genes with negative velo
+    angle_subset = angle_subset[r_subset>=0]
+    color_subset = color_subset[r_subset>=0]
+    gene_names_subset = gs[r_subset>=0]
+    r_subset = r_subset[r_subset>=0]
+    
+    # Plot all genes in phases list
+    cell_cycle_cmap = {0:'firebrick', 1:'orange', 2:'yellowgreen', 3:'teal', 4:'royalblue', 5: 'black'} 
+    ax.scatter(angle_subset, r_subset, c=[cell_cycle_cmap[i] for i in color_subset], s=50, alpha=0.2, edgecolor='none', rasterized=True)
+    
+    angle_subset_markers = angle_subset[color_subset!=5]
+    r_subset_markers = r_subset[color_subset!=5]
+    gene_names_subset_markers = gene_names_subset[color_subset!=5]
+    color_subset_markers = color_subset[color_subset!=5]
+    
+    ax.scatter(angle_subset_markers, r_subset_markers, c=[cell_cycle_cmap[i] for i in color_subset_markers], s=80, alpha=1, edgecolor='none',rasterized=True)
+    
+    # Annotate genes
+    if show_markers:
+        for (i, txt), c in zip(enumerate(gene_names_subset_markers), colored_gradient.values):
+            ix = np.where(np.array(gene_names_subset_markers)==txt)[0][0]
+            ax.annotate(txt[0]+txt[1:].upper(), (angle_subset_markers[ix], r_subset_markers[ix]+0.02))
+
+    if show_names:
+        for (i, txt), c in zip(enumerate(gs), colored_gradient.values):
+            ix = np.where(gs==txt)[0][0]
+            ax.annotate(txt[0]+txt[1:].upper(), (angle[ix], magnitude[ix]+0.02))
+
+    plt.xlim(0, 2*np.pi)
+    plt.ylim(-1, )
+    plt.yticks([-1, -0.5, 0, 0.5, 1])
+    plt.xticks([0, np.pi/2, np.pi, 3*np.pi/2, 2*np.pi],["0", "π/2", "π", "3π/2", "2π"])
+    plt.tight_layout()
+    if show:
+        plt.show();
+    else: 
+        return ax
+
+
+def cbc_heatmap(
+        adata,
+        xkey:str='Ms',
+        vkey:str='velocity',
+        cluster_key:str='clusters', 
+        basis:str='pca',
+        neighbor_key:str='neighbors',
+        vector:str='velocity', 
+        corr_func='cosine',
+        cmap = 'bwr',
+        annot: bool = True,
+        custom_order: list = None,
+        ):
+    """
+    Visualize the CBC score of every possible transitions between clusters using heatmap. 
+    """
+    clusters = adata.obs[cluster_key].unique()
+    rows, cols = clusters.to_list(), clusters.to_list()
+    cluster_edges = []
+    for i in clusters:
+        for j in clusters:
+            if i == j:
+                continue
+            else:
+                cluster_edges.append((i, j))
+
+    scores, _ = cross_boundary_correctness(
+        adata, xkey=xkey, vkey=vkey, cluster_key=cluster_key, cluster_edges=cluster_edges,
+        basis=basis, neighbor_key=neighbor_key, vector=vector, corr_func=corr_func, return_raw=False)
+
+    df = pd.DataFrame(index=rows, columns=cols)
+    for row in rows:
+        for col in cols:
+            if row == col:
+                df.loc[row, col] = np.nan
+            else:
+                df.loc[row, col] = scores[(row, col)]
+
+    df = df.apply(pd.to_numeric)
+    if custom_order:
+        df = df.reindex(index=custom_order, columns=custom_order)
+        
+    abs_max = np.nanmax(np.abs(df.values))
+
+    sns.set_style("whitegrid")
+    sns.heatmap(df, cmap=cmap, annot=annot, center=0, vmin=-abs_max, vmax=abs_max)
+    plt.show()
+
+
+def scatter_plot_mm(adata,
+                 genes,
+                 vukey,
+                 vskey,
+                 vckey,
+                 by='cus',
+                 color_by='celltype',
+                 n_cols=5,
+                 axis_on=True,
+                 frame_on=True,
+                 velocity_arrows=False,
+                 downsample=1,
+                 figsize=None,
+                 pointsize=2,
+                 cmap='coolwarm',
+                 view_3d_elev=None,
+                 view_3d_azim=None,
+                 full_name=False
+                 ):
+    """Gene scatter plot.
+
+    This function plots phase portraits of the specified plane.
+    Modification of Multivelo
+
+    Parameters
+    ----------
+    adata: :class:`~anndata.AnnData`
+        Anndata result from dynamics recovery.
+    genes: `str`,  list of `str`
+        List of genes to plot.
+    by: `str` (default: `cus`)
+        Plot unspliced-spliced plane if `us`. Plot chromatin-unspliced plane
+        if `cu`.
+        Plot 3D phase portraits if `cus`.
+    color_by: `str` (default: `state`)
+        Color by the cell labels like leiden, louvain, celltype, etc.
+        The color field must be present in `.uns`, which can be pre-computed 
+        with `scanpy.pl.scatter`.
+        When `by=='us'`, `color_by` can also be `c`, which displays the log
+        accessibility on U-S phase portraits.
+    n_cols: `int` (default: 5)
+        Number of columns to plot on each row.
+    axis_on: `bool` (default: `True`)
+        Whether to show axis labels.
+    frame_on: `bool` (default: `True`)
+        Whether to show plot frames.
+    title_more_info: `bool` (default: `False`)
+        Whether to display model, direction, and likelihood information for
+        the gene in title.
+    velocity_arrows: `bool` (default: `False`)
+        Whether to show velocity arrows of cells on the phase portraits.
+    downsample: `int` (default: 1)
+        How much to downsample the cells. The remaining number will be
+        `1/downsample` of original.
+    figsize: `tuple` (default: `None`)
+        Total figure size.
+    pointsize: `float` (default: 2)
+        Point size for scatter plots.
+    markersize: `float` (default: 5)
+        Point size for switch time points.
+    linewidth: `float` (default: 2)
+        Line width for connected anchors.
+    cmap: `str` (default: `coolwarm`)
+        Color map for log accessibilities or other continuous color keys when
+        plotting on U-S plane.
+    view_3d_elev: `float` (default: `None`)
+        Matplotlib 3D plot `elev` argument. `elev=90` is the same as U-S plane,
+        and `elev=0` is the same as C-U plane.
+    view_3d_azim: `float` (default: `None`)
+        Matplotlib 3D plot `azim` argument. `azim=270` is the same as U-S
+        plane, and `azim=0` is the same as C-U plane.
+    full_name: `bool` (default: `False`)
+        Show full names for chromatin, unspliced, and spliced rather than
+        using abbreviated terms c, u, and s.
+    """
+    if by not in ['us', 'cu', 'cus']:
+        raise ValueError("'by' argument must be one of ['us', 'cu', 'cus']")
+    if by == 'us' and color_by == 'c':
+        cell_annot = None
+    elif color_by in adata.obs and is_numeric_dtype(adata.obs[color_by]):
+        cell_annot = None
+        colors = adata.obs[color_by].values
+    elif color_by in adata.obs and is_categorical_dtype(adata.obs[color_by]) \
+            and color_by+'_colors' in adata.uns.keys():
+        cell_annot = adata.obs[color_by].cat.categories
+        if isinstance(adata.uns[f'{color_by}_colors'], dict):
+            colors = list(adata.uns[f'{color_by}_colors'].values())
+        else:
+            colors = adata.uns[f'{color_by}_colors']
+    else:
+        raise ValueError('Currently, color key must be a single string of '
+                         'either numerical or categorical available in adata'
+                         ' obs, and the colors of categories can be found in'
+                         ' adata uns.')
+
+    downsample = np.clip(int(downsample), 1, 10)
+    genes = np.array(genes)
+    missing_genes = genes[~np.isin(genes, adata.var_names)]
+    if len(missing_genes) > 0:
+        print(f'{missing_genes} not found')
+    genes = genes[np.isin(genes, adata.var_names)]
+    gn = len(genes)
+    if gn == 0:
+        return
+    if gn < n_cols:
+        n_cols = gn
+    if by == 'cus':
+        fig, axs = plt.subplots(-(-gn // n_cols), n_cols, squeeze=False,
+                                figsize=(3.2*n_cols, 2.7*(-(-gn // n_cols)))
+                                if figsize is None else figsize,
+                                subplot_kw={'projection': '3d'})
+    else:
+        fig, axs = plt.subplots(-(-gn // n_cols), n_cols, squeeze=False,
+                                figsize=(2.7*n_cols, 2.4*(-(-gn // n_cols)))
+                                if figsize is None else figsize)
+    fig.patch.set_facecolor('white')
+    count = 0
+    for gene in genes:
+        u = adata[:, gene].layers['Mu'].copy() if 'Mu' in adata.layers \
+            else adata[:, gene].layers['unspliced'].copy()
+        s = adata[:, gene].layers['Ms'].copy() if 'Ms' in adata.layers \
+            else adata[:, gene].layers['spliced'].copy()
+        u = u.A if sp.issparse(u) else u
+        s = s.A if sp.issparse(s) else s
+        u, s = np.ravel(u), np.ravel(s)
+        if 'ATAC' not in adata.layers.keys() and \
+                'Mc' not in adata.layers.keys():
+            raise ValueError('Cannot find ATAC data in adata layers.')
+        elif 'ATAC' in adata.layers.keys():
+            c = adata[:, gene].layers['ATAC'].copy()
+            c = c.A if sp.issparse(c) else c
+            c = np.ravel(c)
+        elif 'Mc' in adata.layers.keys():
+            c = adata[:, gene].layers['Mc'].copy()
+            c = c.A if sp.issparse(c) else c
+            c = np.ravel(c)
+
+        if velocity_arrows:
+            if vukey in adata.layers.keys():
+                vu = adata[:, gene].layers[vukey].copy()
+            else:
+                vu = np.zeros(adata.n_obs)
+            max_u = np.max([np.max(u), 1e-6])
+            u /= max_u
+            vu = np.ravel(vu)
+            vu /= np.max([np.max(np.abs(vu)), 1e-6])
+            if vskey in adata.layers.keys():
+                vs = adata[:, gene].layers[vskey].copy()
+            else:
+                raise ValueError(f'Splicing velocity {vskey} can not be found in adata layers.')
+            max_s = np.max([np.max(s), 1e-6])
+            s /= max_s
+            vs = np.ravel(vs)
+            vs /= np.max([np.max(np.abs(vs)), 1e-6])
+            if vckey in adata.layers.keys():
+                vc = adata[:, gene].layers[vckey].copy()
+                max_c = np.max([np.max(c), 1e-6])
+                c /= max_c
+                vc = np.ravel(vc)
+                vc /= np.max([np.max(np.abs(vc)), 1e-6])
+
+        row = count // n_cols
+        col = count % n_cols
+        ax = axs[row, col]
+        if cell_annot is not None:
+            for i in range(len(cell_annot)):
+                filt = adata.obs[color_by] == cell_annot[i]
+                filt = np.ravel(filt)
+                if by == 'us':
+                    if velocity_arrows:
+                        ax.quiver(s[filt][::downsample], u[filt][::downsample],
+                                  vs[filt][::downsample],
+                                  vu[filt][::downsample], color=colors[i],
+                                  alpha=0.5, scale_units='xy', scale=10,
+                                  width=0.005, headwidth=4, headaxislength=5.5)
+                    else:
+                        ax.scatter(s[filt][::downsample],
+                                   u[filt][::downsample], s=pointsize,
+                                   c=colors[i], alpha=0.7)
+                elif by == 'cu':
+                    if velocity_arrows:
+                        ax.quiver(u[filt][::downsample],
+                                  c[filt][::downsample],
+                                  vu[filt][::downsample],
+                                  vc[filt][::downsample], color=colors[i],
+                                  alpha=0.5, scale_units='xy', scale=10,
+                                  width=0.005, headwidth=4, headaxislength=5.5)
+                    else:
+                        ax.scatter(u[filt][::downsample],
+                                   c[filt][::downsample], s=pointsize,
+                                   c=colors[i], alpha=0.7)
+                else:
+                    if velocity_arrows:
+                        ax.quiver(s[filt][::downsample],
+                                  u[filt][::downsample], c[filt][::downsample],
+                                  vs[filt][::downsample],
+                                  vu[filt][::downsample],
+                                  vc[filt][::downsample],
+                                  color=colors[i], alpha=0.4, length=0.1,
+                                  arrow_length_ratio=0.5, normalize=True)
+                    else:
+                        ax.scatter(s[filt][::downsample],
+                                   u[filt][::downsample],
+                                   c[filt][::downsample], s=pointsize,
+                                   c=colors[i], alpha=0.7)
+        elif color_by == 'c':
+            outlier = 99.8
+            non_zero = (u > 0) & (s > 0) & (c > 0)
+            non_outlier = u < np.percentile(u, outlier)
+            non_outlier &= s < np.percentile(s, outlier)
+            non_outlier &= c < np.percentile(c, outlier)
+            c -= np.min(c)
+            c /= np.max(c)
+            if velocity_arrows:
+                ax.quiver(s[non_zero & non_outlier][::downsample],
+                          u[non_zero & non_outlier][::downsample],
+                          vs[non_zero & non_outlier][::downsample],
+                          vu[non_zero & non_outlier][::downsample],
+                          np.log1p(c[non_zero & non_outlier][::downsample]),
+                          alpha=0.5,
+                          scale_units='xy', scale=10, width=0.005,
+                          headwidth=4, headaxislength=5.5, cmap=cmap)
+            else:
+                ax.scatter(s[non_zero & non_outlier][::downsample],
+                           u[non_zero & non_outlier][::downsample],
+                           s=pointsize,
+                           c=np.log1p(c[non_zero & non_outlier][::downsample]),
+                           alpha=0.8, cmap=cmap)
+        else:
+            if by == 'us':
+                if velocity_arrows:
+                    ax.quiver(s[::downsample], u[::downsample],
+                              vs[::downsample], vu[::downsample],
+                              colors[::downsample], alpha=0.5,
+                              scale_units='xy', scale=10, width=0.005,
+                              headwidth=4, headaxislength=5.5, cmap=cmap)
+                else:
+                    ax.scatter(s[::downsample], u[::downsample], s=pointsize,
+                               c=colors[::downsample], alpha=0.7, cmap=cmap)
+            elif by == 'cu':
+                if velocity_arrows:
+                    ax.quiver(u[::downsample], c[::downsample],
+                              vu[::downsample], vc[::downsample],
+                              colors[::downsample], alpha=0.5,
+                              scale_units='xy', scale=10, width=0.005,
+                              headwidth=4, headaxislength=5.5, cmap=cmap)
+                else:
+                    ax.scatter(u[::downsample], c[::downsample], s=pointsize,
+                               c=colors[::downsample], alpha=0.7, cmap=cmap)
+            else:
+                if velocity_arrows:
+                    ax.quiver(s[::downsample], u[::downsample],
+                              c[::downsample], vs[::downsample],
+                              vu[::downsample], vc[::downsample],
+                              colors[::downsample], alpha=0.4, length=0.1,
+                              arrow_length_ratio=0.5, normalize=True,
+                              cmap=cmap)
+                else:
+                    ax.scatter(s[::downsample], u[::downsample],
+                               c[::downsample], s=pointsize,
+                               c=colors[::downsample], alpha=0.7, cmap=cmap)
+
+        if by == 'cus' and \
+                (view_3d_elev is not None or view_3d_azim is not None):
+            # US: elev=90, azim=270. CU: elev=0, azim=0.
+            ax.view_init(elev=view_3d_elev, azim=view_3d_azim)
+        title = gene
+        ax.set_title(f'{title}', fontsize=11)
+        if by == 'us':
+            ax.set_xlabel('spliced' if full_name else 's')
+            ax.set_ylabel('unspliced' if full_name else 'u')
+        elif by == 'cu':
+            ax.set_xlabel('unspliced' if full_name else 'u')
+            ax.set_ylabel('chromatin' if full_name else 'c')
+        elif by == 'cus':
+            ax.set_xlabel('spliced' if full_name else 's')
+            ax.set_ylabel('unspliced' if full_name else 'u')
+            ax.set_zlabel('chromatin' if full_name else 'c')
+        if by in ['us', 'cu']:
+            if not axis_on:
+                ax.xaxis.set_ticks_position('none')
+                ax.yaxis.set_ticks_position('none')
+                ax.get_xaxis().set_visible(False)
+                ax.get_yaxis().set_visible(False)
+            if not frame_on:
+                ax.xaxis.set_ticks_position('none')
+                ax.yaxis.set_ticks_position('none')
+                ax.set_frame_on(False)
+        elif by == 'cus':
+            if not axis_on:
+                ax.set_xlabel('')
+                ax.set_ylabel('')
+                ax.set_zlabel('')
+                ax.xaxis.set_ticklabels([])
+                ax.yaxis.set_ticklabels([])
+                ax.zaxis.set_ticklabels([])
+            if not frame_on:
+                ax.xaxis._axinfo['grid']['color'] = (1, 1, 1, 0)
+                ax.yaxis._axinfo['grid']['color'] = (1, 1, 1, 0)
+                ax.zaxis._axinfo['grid']['color'] = (1, 1, 1, 0)
+                ax.xaxis._axinfo['tick']['inward_factor'] = 0
+                ax.xaxis._axinfo['tick']['outward_factor'] = 0
+                ax.yaxis._axinfo['tick']['inward_factor'] = 0
+                ax.yaxis._axinfo['tick']['outward_factor'] = 0
+                ax.zaxis._axinfo['tick']['inward_factor'] = 0
+                ax.zaxis._axinfo['tick']['outward_factor'] = 0
+        count += 1
+    for i in range(col+1, n_cols):
+        fig.delaxes(axs[row, i])
+    fig.tight_layout()
+
+
+def scatter_twogenes_3d(adata,
+                 x,
+                 y,
+                 z,
+                 xkey='M_sc',
+                 vkey='velocity_sc',
+                 color_by='celltype',
+                 n_cols=5,
+                 axis_on=True,
+                 frame_on=True,
+                 velocity_arrows=False,
+                 downsample=1,
+                 figsize=None,
+                 pointsize=2,
+                 alpha=0.4,
+                 cmap='coolwarm',
+                 show_legend=False, 
+                 view_3d_elev=None,
+                 view_3d_azim=None
+                 ):
+    """Gene scatter plot.
+    """
+    if isinstance(x, str):
+        x = [x]
+    if isinstance(y, str):
+        y = [y]
+    if isinstance(z, str):
+        z = [z]
+    if xkey not in adata.layers.keys() or vkey not in adata.layers.keys():
+        raise ValueError('Provided xkey or vkey not found in adata.layers!')
+    if color_by == 'vz':
+        cell_annot = None
+    elif color_by in adata.obs and is_numeric_dtype(adata.obs[color_by]):
+        cell_annot = None
+        colors = adata.obs[color_by].values
+        colors -= np.min(colors)
+        colors /= np.max(colors)
+    elif color_by in adata.obs and is_categorical_dtype(adata.obs[color_by]) \
+            and color_by+'_colors' in adata.uns.keys():
+        cell_annot = adata.obs[color_by].cat.categories
+        if isinstance(adata.uns[f'{color_by}_colors'], dict):
+            colors = list(adata.uns[f'{color_by}_colors'].values())
+        else:
+            colors = adata.uns[f'{color_by}_colors']
+    else:
+        raise ValueError('Currently, color key must be a single string of '
+                         'either numerical or categorical available in adata'
+                         ' obs, and the colors of categories can be found in'
+                         ' adata uns.')
+
+    downsample = np.clip(int(downsample), 1, 10)
+    genes = np.array(list(set(x + y + z)))
+    missing_genes = genes[~np.isin(genes, adata.var_names)]
+    if len(missing_genes) > 0:
+        print(f'{missing_genes} not found')
+    genes = genes[np.isin(genes, adata.var_names)]
+    gn = len(x)
+    if gn < n_cols:
+        n_cols = gn
+    if color_by == 'vz':
+        fig, axs = plt.subplots(-(-gn // n_cols), n_cols, squeeze=False,
+                                figsize=(3*n_cols, 2.4*(-(-gn // n_cols)))
+                                if figsize is None else figsize)
+    else:
+        fig, axs = plt.subplots(-(-gn // n_cols), n_cols, squeeze=False,
+                                figsize=(3.8*n_cols, 2.7*(-(-gn // n_cols)))
+                                if figsize is None else figsize,
+                                subplot_kw={'projection': '3d'})
+    point_size = 500.0 / np.sqrt(adata.shape[0]) if pointsize is None else 500.0 / np.sqrt(adata.shape[0]) * pointsize
+    point_size = 4 * point_size
+
+    fig.patch.set_facecolor('white')
+    count = 0
+    for a, b, c in zip(x, y, z):
+        xa = adata[:, a].layers[xkey].copy()
+        xb = adata[:, b].layers[xkey].copy()
+        xc = adata[:, c].layers[xkey].copy()
+        xa, xb, xc = np.ravel(xa), np.ravel(xb), np.ravel(xc)
+
+        va = adata[:, a].layers[vkey].copy()
+        vb = adata[:, b].layers[vkey].copy()
+        vc = adata[:, c].layers[vkey].copy()
+        max_a = np.max([np.max(xa), 1e-6])
+        xa /= max_a
+        va = np.ravel(va)
+        va /= np.max([np.max(np.abs(va)), 1e-6])
+        max_b = np.max([np.max(xb), 1e-6])
+        xb /= max_b
+        vb = np.ravel(vb)
+        vb /= np.max([np.max(np.abs(vb)), 1e-6])
+        max_c = np.max([np.max(xc), 1e-6])
+        xc /= max_c
+        vc = np.ravel(vc)
+        vc /= np.max([np.max(np.abs(vc)), 1e-6])
+        if color_by == 'vz':
+            colors = vc
+
+        cur_df = pd.DataFrame({"x": xa, "y": xb, "z": xc, 
+                               "dx": va, "dy": vb, "dz": vc})
+
+        row = count // n_cols
+        col = count % n_cols
+        ax = axs[row, col]
+        if cell_annot is not None:
+            for i in range(len(cell_annot)):
+                filt = adata.obs[color_by] == cell_annot[i]
+                filt = np.ravel(filt)
+                if velocity_arrows:
+                    ax.quiver(xa[filt][::downsample],
+                              xb[filt][::downsample], 
+                              xc[filt][::downsample],
+                              va[filt][::downsample],
+                              vb[filt][::downsample],
+                              vc[filt][::downsample],
+                              color=colors[i], alpha=alpha, length=0.1,
+                              arrow_length_ratio=0.3, normalize=True)
+                else:
+                    ax.scatter(xa[filt][::downsample],
+                               xb[filt][::downsample],
+                               xc[filt][::downsample], s=pointsize,
+                               c=colors[i], alpha=alpha)
+
+        elif color_by == 'vz':
+            vc_max = np.percentile(np.abs(vc).max(), 95)
+            if velocity_arrows:
+                ax.quiver(xa[::downsample],
+                          xb[::downsample],
+                          va[::downsample],
+                          vb[::downsample],
+                          color=colors[::downsample],
+                          alpha=alpha,
+                          scale_units='xy', scale=10, width=0.005,
+                          headwidth=4, headaxislength=5.5, cmap=cmap)
+            else:
+                ax.scatter(xa[::downsample],
+                           xb[::downsample],
+                           s=pointsize,
+                           c=colors,
+                           alpha=alpha, cmap=cmap,
+                           vmin=-vc_max, vmax=vc_max)
+        else:
+            if velocity_arrows:
+                ax.quiver(xa[::downsample],
+                            xb[::downsample], 
+                            xc[::downsample],
+                            va[::downsample],
+                            vb[::downsample],
+                            vc[::downsample],
+                            color=colors[::downsample], alpha=alpha, length=0.1,
+                            arrow_length_ratio=0.3, normalize=True,
+                            cmap=cmap)
+            else:
+                ax.scatter(xa[::downsample],
+                            xb[::downsample],
+                            xc[::downsample], s=pointsize,
+                            c=colors[::downsample], alpha=alpha, cmap=cmap)
+
+        if show_legend:
+            # plt.subplots_adjust(right=0.95)
+            if color_by == 'vz' or (color_by in adata.obs and is_numeric_dtype(adata.obs[color_by])):
+                # Create a scalar mappable for numeric data
+                sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=np.min(colors), vmax=np.max(colors)))
+                sm.set_array([])
+                cbar = fig.colorbar(sm, ax=ax, orientation='vertical', pad=0.1, aspect=20)
+            elif color_by in adata.obs and is_categorical_dtype(adata.obs[color_by]):
+                # Create a color bar with discrete colors for categorical data
+                from matplotlib.colors import ListedColormap
+                cmap = ListedColormap(colors)
+                bounds = np.arange(len(cell_annot)+1)
+                norm = plt.Normalize(vmin=bounds.min(), vmax=bounds.max())
+                sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+                sm.set_array(bounds)
+                cbar = fig.colorbar(sm, ticks=np.arange(len(cell_annot)), ax=ax, orientation='vertical', pad=0.1, aspect=20)
+                cbar.set_ticklabels(cell_annot)
+
+        if (view_3d_elev is not None or view_3d_azim is not None):
+            # US: elev=90, azim=270. CU: elev=0, azim=0.
+            ax.view_init(elev=view_3d_elev, azim=view_3d_azim)
+        title = f'{a}_{b}_{c}'
+        ax.set_title(title, fontsize=11)
+        if color_by == 'vz':
+            if not axis_on:
+                ax.xaxis.set_ticks_position('none')
+                ax.yaxis.set_ticks_position('none')
+                ax.get_xaxis().set_visible(False)
+                ax.get_yaxis().set_visible(False)
+            else:
+                ax.set_xlabel(a)
+                ax.set_ylabel(b)
+                ax.set_xticklabels(ax.get_yticklabels(), rotation=90, ha='right')
+            if not frame_on:
+                ax.xaxis.set_ticks_position('none')
+                ax.yaxis.set_ticks_position('none')
+                ax.set_frame_on(False)
+        else:
+            if not axis_on:
+                ax.set_xlabel('')
+                ax.set_ylabel('')
+                ax.set_zlabel('')
+                ax.xaxis.set_ticklabels([])
+                ax.yaxis.set_ticklabels([])
+                ax.zaxis.set_ticklabels([])
+            else:
+                ax.set_xlabel(a)
+                ax.set_ylabel(b)
+                ax.set_zlabel(c)
+                ax.set_xticklabels(ax.get_zticklabels(), rotation=90, ha='right')
+
+            if not frame_on:
+                ax.xaxis._axinfo['grid']['color'] = (1, 1, 1, 0)
+                ax.yaxis._axinfo['grid']['color'] = (1, 1, 1, 0)
+                ax.zaxis._axinfo['grid']['color'] = (1, 1, 1, 0)
+                ax.xaxis._axinfo['tick']['inward_factor'] = 0
+                ax.xaxis._axinfo['tick']['outward_factor'] = 0
+                ax.yaxis._axinfo['tick']['inward_factor'] = 0
+                ax.yaxis._axinfo['tick']['outward_factor'] = 0
+                ax.zaxis._axinfo['tick']['inward_factor'] = 0
+                ax.zaxis._axinfo['tick']['outward_factor'] = 0
+        count += 1
+    for i in range(col+1, n_cols):
+        fig.delaxes(axs[row, i])
+    fig.tight_layout()
 
 
 def gene_score_histogram(
@@ -124,45 +989,7 @@ def gene_score_histogram(
         )
 
     return fig
-
-
-def cbc_heatmap(
-        adata,
-        xkey:str='M_s',
-        vkey:str='velocity_S',
-        cluster_key:str='clusters', 
-        basis:str='pca',
-        neighbor_key:str='neighbors',
-        vector:str='velocity', 
-        corr_func='cosine',
-        cmap = 'viridis',
-        annot: bool = True,
-        ):
-    clusters = adata.obs[cluster_key].unique()
-    rows, cols = clusters.to_list(), clusters.to_list()
-    cluster_edges = []
-    for i in clusters:
-        for j in clusters:
-            if i == j:
-                continue
-            else:
-                cluster_edges.append((i, j))
-
-    scores, _ = cross_boundary_correctness(
-        adata, xkey=xkey, vkey=vkey, cluster_key=cluster_key, cluster_edges=cluster_edges,
-        basis=basis, neighbor_key=neighbor_key, vector=vector, corr_func=corr_func, return_raw=False)
-
-    df = pd.DataFrame(index=rows, columns=cols)
-    for row in rows:
-        for col in cols:
-            if row == col:
-                df.loc[row, col] = np.nan
-            else:
-                df.loc[row, col] = scores[(row, col)]
-    df = df.apply(pd.to_numeric)
-    sns.set_style("whitegrid")
-    sns.heatmap(df, cmap=cmap, annot=annot)
-
+    
 
 def gene_trend(adata, 
                genes, 
@@ -322,10 +1149,10 @@ def response(
     hide_trend: bool = False,
     figsize: Tuple[float, float] = (6, 4),
     show: bool = True,
+    return_integration: bool = False,
     **kwargs,
     ):
-    """ A modified plotting function of response curve.
-     Adapted from dynamo package """
+    """ Fiting response curve using GAM """
     from scipy import integrate
     from matplotlib.ticker import MaxNLocator
     from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -629,6 +1456,8 @@ def response(
     plt.tight_layout()
     if show:
         plt.show()
-
     else:
         return axes
+    
+    if return_integration:
+        return fit_integration

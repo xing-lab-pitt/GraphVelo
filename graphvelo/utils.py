@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
 
+from numba import njit
 import scipy.sparse as sp
 from sklearn.metrics import accuracy_score
 
@@ -166,6 +167,21 @@ def velo_angle(v1, v2):
     return cell_angles
 
 
+def velocity_consistency(adata, vkey, gvkey, V_threshold):
+    """ Compute velocity consistency between original one and graphvelo output. """
+    v1 = adata.layers[vkey].A if sp.issparse(adata.layers[vkey]) else adata.layers[vkey]
+    v2 = adata.layers[gvkey].A if sp.issparse(adata.layers[gvkey]) else adata.layers[gvkey]
+    threshold_v1 = np.percentile(abs(v1), V_threshold)
+    threshold_v2 = np.percentile(abs(v2), V_threshold)
+    v1_sign = v1 > -threshold_v1
+    v2_sign = v2 > -threshold_v2
+    score = [
+        accuracy_score(v2_sign[:, var_id], v1_sign[:, var_id])
+        for var_id in range(v1.shape[1])
+    ]
+    return np.array(score)
+
+
 # sampling-related
 def sample_edge_cells(adata, cluster_key: str, edges: list, nbrs_idx: list=None, exclude_target: bool=False):
     if cluster_key not in adata.obs.keys():
@@ -193,6 +209,64 @@ def sample_edge_cells(adata, cluster_key: str, edges: list, nbrs_idx: list=None,
     return edge_cells_idx
 
 
+def is_meg(x, y, trend=0, num_bins=100, min_samples=10, alpha=0.05):
+    '''
+    Adapted from phylovelo criteria. 
+    Determine whether a gene is MEG (monotonically expressed gene) for continuous data.
+    
+    Args:
+        x: 
+            Time
+        y:
+            Gene expression levels (list or array-like, continuous)
+        trend:
+            Positive for increasing MEGs, negative for decreasing MEGs
+        num_bins:
+            Number of bins to use for discretizing the continuous data
+        min_samples:
+            Minimum number of samples required to perform the test
+        alpha:
+            Significance level for the Mann-Whitney U test
+    
+    Returns:
+        bool:
+            True if the gene is MEG, False otherwise
+    '''
+    from scipy.stats import mannwhitneyu
+    x = np.array(x)
+    y = np.array(y)
+    
+    # Compute quantile-based bin edges for x
+    quantiles = np.linspace(0, 1, num_bins + 1)
+    bin_edges = np.quantile(x, quantiles)
+
+    # Digitize x based on quantile edges
+    digitized_x = np.digitize(x, bin_edges) - 1  # Bin indices
+    
+    # Define the condition based on the trend
+    alternative = 'greater' if trend > 0 else 'less'
+    
+    # Calculate the number of tests to be performed
+    num_tests = num_bins - 1
+    adjusted_alpha = alpha / num_tests  # Bonferroni correction
+    
+    # Iterate through the range of binned expression levels
+    for k in range(num_bins - 1):
+        group1 = y[digitized_x == k]
+        group2 = y[digitized_x == k + 1]
+        
+        if len(group1) < min_samples or len(group2) < min_samples:
+            continue
+        
+        # Perform Mann-Whitney U test between consecutive binned levels
+        p_value = mannwhitneyu(group1, group2, alternative=alternative)[1]
+        
+        if p_value < adjusted_alpha:
+            return False
+
+    return True
+
+
 def gene_wise_confidence(
     adata,
     group: str,
@@ -209,7 +283,7 @@ def gene_wise_confidence(
     Args:
         adata: An AnnData object.
         group: The column key/name that identifies the cell state grouping information of cells. This will be used for
-            calculating gene-wise confidence score in each cell state.
+            calculating gene-wise mack_val score in each cell state.
         lineage_dict: A dictionary describes lineage priors. Keys correspond to the group name from `group` that
             corresponding to the state of one progenitor type while values correspond to the group names from `group`
             that corresponding to the states of one or multiple terminal cell states. The best practice for determining
@@ -218,16 +292,16 @@ def gene_wise_confidence(
             cell state, you need to create two records each with the same terminal cell as value but different
             progenitor as the key. Value can be either a string for one cell group or a list of string for multiple cell
             groups. Defaults to None.
-        genes: The list of genes that will be used to gene-wise confidence score calculation. If `None`, all genes that
+        genes: The list of genes that will be used to gene-wise mack_val score calculation. If `None`, all genes that
             go through velocity estimation will be used. Defaults to None.
         ekey: The layer that will be used to retrieve data for identifying the gene is in induction or repression phase
             at each cell state. If `None`, `.X` is used. Defaults to "M_s".
-        vkey: The layer that will be used to retrieve velocity data for calculating gene-wise confidence. If `None`,
+        vkey: The layer that will be used to retrieve velocity data for calculating gene-wise mack_val. If `None`,
             `velocity_S` is used. Defaults to "velocity_S".
         X_data: The user supplied data that will be used for identifying the gene is in induction or repression phase at
             each cell state directly. Defaults to None.
-        V_data: The user supplied data that will be used for calculating gene-wise confidence directly. Defaults to None.
-        V_threshold: The threshold of velocity to calculate the gene wise confidence. Defaults to 1.
+        V_data: The user supplied data that will be used for calculating gene-wise mack_val directly. Defaults to None.
+        V_threshold: The threshold of velocity to calculate the gene wise mack_val. Defaults to 1.
 
     Raises:
         ValueError: `X_data` is provided but `genes` does not correspond to its columns.
@@ -254,10 +328,10 @@ def gene_wise_confidence(
 
     sparse, sparse_v = sp.issparse(X_data), sp.issparse(V_data)
 
-    confidence = []
+    mack_val = []
     for i_gene, gene in tqdm(
         enumerate(genes),
-        desc="calculating gene velocity vectors confidence based on phase "
+        desc="calculating gene velocity vectors mack_val based on phase "
         "portrait location with priors of progenitor/mature cell types",
     ):
         all_vals = X_data[:, i_gene].A if sparse else X_data[:, i_gene]
@@ -301,7 +375,7 @@ def gene_wise_confidence(
                             mature_vals_v
                         )  # most cell should upregulate / ss
 
-                    confidence.append(
+                    mack_val.append(
                         (
                             gene,
                             progenitor,
@@ -311,8 +385,8 @@ def gene_wise_confidence(
                         )
                     )
 
-    confidence = pd.DataFrame(
-        confidence,
+    mack_val = pd.DataFrame(
+        mack_val,
         columns=[
             "gene",
             "progenitor",
@@ -321,37 +395,80 @@ def gene_wise_confidence(
             "mature_confidence",
         ],
     )
-    confidence.astype(dtype={"prog_confidence": "float64", "prog_confidence": "float64"})
+    mack_val.astype(dtype={"prog_confidence": "float64", "prog_confidence": "float64"})
     adata.var["avg_prog_confidence"], adata.var["avg_mature_confidence"] = (
         np.nan,
         np.nan,
     )
-    avg = confidence.groupby("gene")[["prog_confidence", "mature_confidence"]].mean()
+    avg = mack_val.groupby("gene")[["prog_confidence", "mature_confidence"]].mean()
     avg = avg.reset_index().set_index("gene")
     adata.var.loc[genes, "avg_prog_confidence"] = avg.loc[genes, "prog_confidence"]
     adata.var.loc[genes, "avg_mature_confidence"] = avg.loc[genes, "mature_confidence"]
 
-    adata.uns["gene_wise_confidence"] = confidence
+    adata.uns["gene_wise_confidence"] = mack_val
 
+
+@njit
+def compute_confidence_numba(x, v, nbrs_idx, t, eps=1e-5):
+    N, k = nbrs_idx.shape  # N cells and k neighbors per cell
+    scores = np.empty(N, dtype=np.float64)
+    for i in range(N):
+        count = 0
+        for j in range(k):
+            nbr = nbrs_idx[i, j]
+            dt = t[nbr] - t[i] + eps
+            d_val = x[nbr] - x[i]
+            # Compute sign of d_val/dt
+            ratio = d_val / dt
+            if ratio > 0:
+                s = 1
+            elif ratio < 0:
+                s = -1
+            else:
+                s = 0
+            # Compute sign of v[i]
+            if v[i] > 0:
+                s_v = 1
+            elif v[i] < 0:
+                s_v = -1
+            else:
+                s_v = 0
+            if s == s_v:
+                count += 1
+        scores[i] = count / k  # average accuracy for cell i
+    return scores
+
+def compute_confidence(gene_i, gene, X_data, V_data, nbrs_idx, N, t, return_score):
+    # Extract the gene-specific expression and velocity as 1D arrays.
+    x = flatten(X_data[:, gene_i])
+    v = flatten(V_data[:, gene_i])
+    # Call the Numba-accelerated function.
+    scores = compute_confidence_numba(x, v, nbrs_idx, t)
+    if not return_score:
+        return (gene, scores.mean())
+    else:
+        return (gene, scores.mean(), scores)
 
 def mack_score(
     adata,
     n_neighbors: Optional[int] = None,
     basis: Optional[str] = None,
     tkey: Optional[str] = None,
-    genes: Optional[List]= None,
+    genes: Optional[List] = None,
     ekey: str = "M_s",
     vkey: str = "velocity_S",
     X_data = None,
-    V_data= None,
+    V_data = None,
     n_jobs= -1,
     add_prefix: Optional[str] = None,
     return_score: bool = False,
 ):   
+    # Determine the number of jobs to use.
     if (n_jobs is None or not isinstance(n_jobs, int) or n_jobs < 0 or
             n_jobs > os.cpu_count()):
         n_jobs = os.cpu_count()
 
+    # Restrict genes if provided.
     if genes is not None:
         genes = adata.var_names.intersection(genes).to_list()
         if len(genes) == 0:
@@ -360,15 +477,17 @@ def mack_score(
         tmp_V = adata.layers[vkey].A if sp.issparse(adata.layers[vkey]) else adata.layers[vkey]
         genes = adata[:, ~np.isnan(tmp_V.sum(0))].var_names
 
+    # Get X_data and V_data if not provided.
     if X_data is None or V_data is None:
         X_data = adata[:, genes].layers[ekey]
         V_data = adata[:, genes].layers[vkey]
     else:
         if V_data.shape[1] != X_data.shape[1] or len(genes) != X_data.shape[1]:
             raise ValueError(
-                f"When providing X_data, a list of genes name that corresponds to the columns of X_data "
+                f"When providing X_data, a list of gene names that corresponds to the columns of X_data "
                 f"must be provided")
 
+    # Get kNN indices.
     if n_neighbors is None:
         nbrs_idx = adata.uns['neighbors']['indices']
     else:
@@ -380,25 +499,14 @@ def mack_score(
             logging.info(f"Compute knn in original basis...")
             X_for_knn = adata.X.A if sp.issparse(adata.X) else adata.X
             nbrs_idx, _ = knn(X_for_knn, n_neighbors)
-
-    N = adata.n_obs
-    t = adata.obs[tkey]
-
-    def compute_confidence(gene_i, gene, X_data, V_data, nbrs_idx, N, t, return_score):
-        x, v = flatten(X_data[:, gene_i]), flatten(V_data[:, gene_i])
-        scores = np.zeros(N)
-        for cell_i in range(N):
-            nbrs = nbrs_idx[cell_i]
-            delta_t = t[nbrs] - t[cell_i] + 1e-5
-            delta = x[nbrs] - x[cell_i]  # k*D
-            v_i = v[cell_i]
-            scores[cell_i] = accuracy_score(np.repeat(np.sign(v_i), len(delta)), np.sign(delta/delta_t))
-        if not return_score:
-            return (gene, scores.mean())
-        else:
-            return (gene, scores.mean(), scores)
     
-    # Calculate confidence in parallel
+    # Ensure nbrs_idx is a 2D NumPy array.
+    if not isinstance(nbrs_idx, np.ndarray):
+        nbrs_idx = np.array(nbrs_idx)
+    
+    N = adata.n_obs
+    t = adata.obs[tkey].to_numpy() if hasattr(adata.obs[tkey], "to_numpy") else np.array(adata.obs[tkey])
+
     res = Parallel(n_jobs=n_jobs, backend='loky')(
         delayed(compute_confidence)(
             gene_i, 
@@ -411,23 +519,26 @@ def mack_score(
             return_score,
         )
         for gene_i, gene in tqdm(
-        enumerate(genes),
-        total=len(genes),
-        desc=f"calculating manifold-consistent scores in {n_jobs} cpu(s)",
-    ))
+            enumerate(genes),
+            total=len(genes),
+            desc=f"calculating manifold-consistent scores in {n_jobs} cpu(s)",
+        )
+    )
         
-    confidence = pd.DataFrame(
+    mack_val = pd.DataFrame(
         res,
         columns=[
             "gene",
-            "confidence",
+            "mack_score",
         ]
     )
 
-    confidence = confidence.reset_index().set_index("gene")
-    confidence.astype(dtype={"confidence": "float64"})
+    mack_val = mack_val.reset_index().set_index("gene")
+    mack_val = mack_val.astype({"mack_score": "float64"})
 
-    velo_conf_key = "mack_score" if add_prefix is None else add_prefix+"mack_score"
+    velo_conf_key = "mack_score" if add_prefix is None else add_prefix+"_mack_score"
     adata.var[velo_conf_key] = np.nan
-    adata.var.loc[genes, velo_conf_key] = confidence.loc[genes, "confidence"]
-
+    adata.var.loc[genes, velo_conf_key] = mack_val.loc[genes, "mack_score"]
+    
+    if return_score:
+        return mack_val
