@@ -27,9 +27,6 @@ from source.docs_download_utils import _download_docs_dirs
 # HERE = Path(__file__).parent
 # sys.path[:0] = [str(HERE.parent)]
 
-# Set the project name
-project = 'GraphVelo'
-
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 source_suffix = {".rst": "restructuredtext"}
@@ -56,15 +53,15 @@ nbsphinx_execute = "never"  # never execute notebooks
 
 # -- Project information -----------------------------------------------------
 
-project_name = "GraphVelo"
+project = 'GraphVelo'
 package_name = "graphvelo"
 author = "Chen, Yuhao and Zhang, Yan and Gan, Jiaqi and Ni, Ke and Chen, Ming and Bahar, Ivet and Xing, Jianhua"
 copyright = f"{datetime.now():%Y}, {author}."
-version = "0.2.0"
+version = "0.1.0"
 repository_url = "https://github.com/xing-lab-pitt/GraphVelo"
 
 # The full version, including alpha/beta/rc tags
-release = "0.2.0"
+release = "0.1.0"
 
 bibtex_bibfiles = ["references.bib"]
 bibtex_reference_style = "author_year"
@@ -77,11 +74,11 @@ needs_sphinx = "4.0"
 html_context = {
     "display_github": True,  # Integrate GitHub
     "github_user": "xing-lab-pitt",  # Username
-    "github_repo": project_name,  # Repo name
+    "github_repo": project,  # Repo name
     "github_version": "main",  # Version
     "conf_py_path": "/docs/",  # Path in the checkout to the docs root
 }
-github_repo = "https://github.com/" + html_context["github_user"] + "/" + project_name
+github_repo = "https://github.com/" + html_context["github_user"] + "/" + project
 
 
 # -- General configuration ---------------------------------------------------
