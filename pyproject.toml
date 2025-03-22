@@ -36,7 +36,7 @@ dependencies = [
 
 [project.urls]
 homepage = "https://github.com/xing-lab-pitt/GraphVelo"
-documentation = "https://github.com/xing-lab-pitt/GraphVelo"
+documentation = "https://graphvelo.readthedocs.io/en/latest/"
 repository = "https://github.com/xing-lab-pitt/GraphVelo"
 
 [project.scripts]
