@@ -19,9 +19,10 @@ GAM
 ~~~~
 
 .. module:: graphvelo.gam
-.. currentmodule:: graphvelo
+.. currentmodule:: graphvelo.gam
 .. autosummary::
     :toctree: api
 
-    gam.fit_gene_trend
-    gam.fit_response
+    fit_velo_peak
+    fit_gene_trend
+    fit_response

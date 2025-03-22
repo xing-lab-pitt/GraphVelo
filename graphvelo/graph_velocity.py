@@ -10,7 +10,7 @@ from sklearn.decomposition import PCA
 from joblib import Parallel, delayed
 import matplotlib.pyplot as plt
 
-from tangent_space import corr_kernel, cos_corr, density_corrected_transition_matrix, _estimate_dt
+from .tangent_space import corr_kernel, cos_corr, density_corrected_transition_matrix, _estimate_dt
 
 
 def regression_phi(

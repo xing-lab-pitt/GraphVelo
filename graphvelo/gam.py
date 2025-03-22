@@ -9,8 +9,8 @@ import scipy.sparse as sp
 from scipy.optimize import minimize_scalar
 from anndata import AnnData
 
-from utils import flatten
-from kernel_density_smooth import kde2d
+from .utils import flatten
+from .kernel_density_smooth import kde2d
 
 
 def fit_velo_peak(

@@ -18,10 +18,10 @@ from matplotlib.colors import Colormap
 import matplotlib.patheffects as PathEffects
 import seaborn as sns
 
-from utils import flatten
-from gam import fit_velo_peak
-from metrics import cross_boundary_correctness
-from kernel_density_smooth import kde2d, kde2d_to_mean_and_sigma
+from .utils import flatten
+from .gam import fit_velo_peak
+from .metrics import cross_boundary_correctness
+from .kernel_density_smooth import kde2d, kde2d_to_mean_and_sigma
 
 
 # Cell cycle genes are adapted from `dynamo`.
