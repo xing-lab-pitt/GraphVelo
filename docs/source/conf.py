@@ -27,6 +27,9 @@ from source.docs_download_utils import _download_docs_dirs
 # HERE = Path(__file__).parent
 # sys.path[:0] = [str(HERE.parent)]
 
+# Set the project name
+project = 'GraphVelo'
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 source_suffix = {".rst": "restructuredtext"}
