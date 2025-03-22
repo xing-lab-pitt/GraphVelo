@@ -15,10 +15,6 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Topic :: Scientific/Engineering :: Bio-Informatics",]
 requires-python = ">=3.8"
-
-[tool.flit.module]
-name = "graphvelo"
-
 dependencies = [
     "tqdm",
     "numpy>=1.24.3",
@@ -32,6 +28,10 @@ dependencies = [
     "matplotlib>=3.7.5,<4.0.0",
     "seaborn>=0.13.2",
 ]
+
+[tool.flit.module]
+name = "graphvelo"
+
 
 
 [project.urls]
