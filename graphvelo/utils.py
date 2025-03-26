@@ -21,6 +21,43 @@ def flatten(arr: Union[pd.Series, sp.csr_matrix, np.ndarray]) -> np.ndarray:
     return ret
 
 
+def uniform_downsample_cells(X: np.ndarray, downsample):
+    n_cells = X.shape[0]
+    if 0 < downsample < 1:
+        target = int(n_cells * downsample)
+    else:
+        target = int(downsample)
+    
+    n_bins = int(np.ceil(np.sqrt(target)))
+    x_min, x_max = X[:, 0].min(), X[:, 0].max()
+    y_min, y_max = X[:, 1].min(), X[:, 1].max()
+    x_edges = np.linspace(x_min, x_max, n_bins + 1)
+    y_edges = np.linspace(y_min, y_max, n_bins + 1)
+    x_bin = np.minimum(np.digitize(X[:, 0], x_edges) - 1, n_bins - 1)
+    y_bin = np.minimum(np.digitize(X[:, 1], y_edges) - 1, n_bins - 1)
+    bins = list(zip(x_bin, y_bin))
+
+    selected_indices = []
+    unique_bins = np.unique(bins, axis=0)
+    
+    for b in unique_bins:
+        idxs = [i for i, bin_val in enumerate(bins) if bin_val == tuple(b)]
+        if len(idxs) == 0:
+            continue
+        ix, iy = b
+        x_center = (x_edges[ix] + x_edges[ix+1]) / 2
+        y_center = (y_edges[iy] + y_edges[iy+1]) / 2
+        distances = [np.sqrt((X[i, 0] - x_center)**2 + (X[i, 1] - y_center)**2) for i in idxs]
+        best_idx = idxs[np.argmin(distances)]
+        selected_indices.append(best_idx)
+    
+    selected_indices = np.array(selected_indices)
+    if selected_indices.size > target:
+        selected_indices = np.random.choice(selected_indices, size=target, replace=False)
+    
+    return selected_indices
+
+
 def knn(
     X: np.ndarray,
     k: int,

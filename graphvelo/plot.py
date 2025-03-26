@@ -18,9 +18,9 @@ from matplotlib.colors import Colormap
 import matplotlib.patheffects as PathEffects
 import seaborn as sns
 
-from .utils import flatten
 from .gam import fit_velo_peak
 from .metrics import cross_boundary_correctness
+from .utils import flatten, uniform_downsample_cells
 from .kernel_density_smooth import kde2d, kde2d_to_mean_and_sigma
 
 
@@ -888,48 +888,6 @@ def scatter_twogenes_3d(adata,
     fig.tight_layout()
 
 
-from tqdm import tqdm
-import logging
-from graphvelo.utils import flatten
-from pandas.api.types import is_numeric_dtype, is_categorical_dtype
-
-def uniform_downsample_cells(X: np.ndarray, downsample):
-    n_cells = X.shape[0]
-    if 0 < downsample < 1:
-        target = int(n_cells * downsample)
-    else:
-        target = int(downsample)
-    
-    n_bins = int(np.ceil(np.sqrt(target)))
-    x_min, x_max = X[:, 0].min(), X[:, 0].max()
-    y_min, y_max = X[:, 1].min(), X[:, 1].max()
-    x_edges = np.linspace(x_min, x_max, n_bins + 1)
-    y_edges = np.linspace(y_min, y_max, n_bins + 1)
-    x_bin = np.minimum(np.digitize(X[:, 0], x_edges) - 1, n_bins - 1)
-    y_bin = np.minimum(np.digitize(X[:, 1], y_edges) - 1, n_bins - 1)
-    bins = list(zip(x_bin, y_bin))
-
-    selected_indices = []
-    unique_bins = np.unique(bins, axis=0)
-    
-    for b in unique_bins:
-        idxs = [i for i, bin_val in enumerate(bins) if bin_val == tuple(b)]
-        if len(idxs) == 0:
-            continue
-        ix, iy = b
-        x_center = (x_edges[ix] + x_edges[ix+1]) / 2
-        y_center = (y_edges[iy] + y_edges[iy+1]) / 2
-        distances = [np.sqrt((X[i, 0] - x_center)**2 + (X[i, 1] - y_center)**2) for i in idxs]
-        best_idx = idxs[np.argmin(distances)]
-        selected_indices.append(best_idx)
-    
-    selected_indices = np.array(selected_indices)
-    if selected_indices.size > target:
-        selected_indices = np.random.choice(selected_indices, size=target, replace=False)
-    
-    return selected_indices
-
-
 def plot_velocity_phase(
     adata,
     genes,
@@ -1040,7 +998,7 @@ def plot_velocity_phase(
                 filt = np.ravel(filt)
                 ax.scatter(X_org[filt, 0], X_org[filt, 1], c=colors[j], s=pointsize, alpha=alpha)
         else:
-            ax.scatter(X_org[filt, 0], X_org[filt, 1], c=colors, s=pointsize, alpha=alpha, cmap=cmap, edgecolor='none')
+            ax.scatter(X_org[:, 0], X_org[:, 1], c=colors, s=pointsize, alpha=alpha, cmap=cmap, edgecolor='none')
         ax.quiver(
             X[:, 0], X[:, 1], 
             V[:, 0], V[:, 1],
