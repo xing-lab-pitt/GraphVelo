@@ -294,7 +294,7 @@ class GraphVelo():
                        'approx': approx,
                        'n_pcs': n_pcs}
 
-    def train(self, a=1, b=10, r=1, loss_func=None, transition_matrix=None, softmax_adjusted=False):
+    def train(self, a=1, b=10, r=1, loss_func=None, transition_matrix=None, softmax_adjusted=False, n_jobs=None):
         """
         Train the GraphVelo model by learning the phi coefficients in tangent space.
         
@@ -313,7 +313,7 @@ class GraphVelo():
             P_dc = density_corrected_transition_matrix(P).A
         else:
             P_dc = transition_matrix
-        T = tangent_space_projection(self.X, self.V, P_dc, self.nbrs_idx, a=a, b=b, r=r, loss_func=loss_func)
+        T = tangent_space_projection(self.X, self.V, P_dc, self.nbrs_idx, a=a, b=b, r=r, loss_func=loss_func, n_jobs=n_jobs)
         self.T = sp.csr_matrix(T)
         self.params.update(train_params)
     
