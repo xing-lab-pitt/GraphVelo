@@ -41,18 +41,22 @@ pip install graphvelo
 
 ## Citing GraphVelo
 
-Please see our [manuscript](https://www.biorxiv.org/content/10.1101/2024.12.03.626638v1) for detailed explanation. 
+Please see our [paper](https://www.nature.com/articles/s41467-025-62784-w) for detailed explanation. 
 If you find GraphVelo useful for your research, please consider citing our work as follows:
 
 ```
-@article {Chen2024.12.03.626638,
+@article {Chen2025NatCommunGraphVelo,
 	author = {Chen, Yuhao and Zhang, Yan and Gan, Jiaqi and Ni, Ke and Chen, Ming and Bahar, Ivet and Xing, Jianhua},
-	title = {GraphVelo allows inference of multi-modal single cell velocities and molecular mechanisms},
-	year = {2024},
-	doi = {10.1101/2024.12.03.626638},
-	publisher = {Cold Spring Harbor Laboratory},
-	URL = {https://www.biorxiv.org/content/early/2024/12/07/2024.12.03.626638},
-	journal = {bioRxiv}
+	title = {GraphVelo allows for accurate inference of multimodal velocities and molecular mechanisms for single cells},
+	journal = {Nature Communications},
+	year = {2025},
+	volume = {16},
+	number = {1},
+	pages = {7831},
+	doi = {10.1038/s41467-025-62784-w},
+	URL = {https://www.nature.com/articles/s41467-025-62784-w},
+	publisher = {Springer Nature}
 }
+
 
 ```
